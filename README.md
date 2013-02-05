@@ -6,7 +6,21 @@ Shepherd is configuration and server management wrapped in an easy to use, strai
 Install
 =======
 
-At the moment there are no binaries available. They will be coming shortly.
+#### RPM based systems
+```
+# rpm -i http://netserious.com/downloads/shepherd-0.5.0-1.x86_64.rpm
+```
+
+#### Debian
+```
+# wget http://netserious.com/downloads/shepherd_0.5.0_amd64.deb
+# dpkg -i shepherd_0.5.0_amd64.deb
+```
+
+#### Mac OS X
+
+Download the latest pkg from http://netserious.com/downloads and double click on the installer.
+
 
 Configuration Examples
 ======================
@@ -39,20 +53,20 @@ Create a PostgreSQL user and database:
 user = "example"
 
 pg_user(
-	user,													// Use the user variable set above
-	"password",										// Set the password (unencrypted)
+	user,
+	"password",
 	{
-		username: "postgres",				// default is root
-		password: "",								// default is blank
-		host: "localhost",					// default is localhost
-		port: 5432,									// default is 3306
-		ssl: false									// do not use ssl
+		username: "postgres",
+		password: "",
+		host: "localhost",
+		port: 5432,
+		ssl: false
 	}
 )
 
 pg_database(
-	"example",									// database name
-	user,												// database owner
+	"example",
+	user,
 	{
 		username: "postgres",
 		password: "",
