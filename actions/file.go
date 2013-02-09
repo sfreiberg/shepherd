@@ -52,7 +52,6 @@ func (f *File) Run() {
 		return
 	}
 	f.Result.Success = true
-	return
 }
 
 func (f *File) FileExists() bool {
