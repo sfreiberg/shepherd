@@ -34,7 +34,11 @@ func (d *Directory) Run() {
 		}
 	}
 
-	UpdatePermissions(d)
+	err = UpdatePermissions(d)
+	if err != nil {
+		d.Result.Error = err.Error()
+		return
+	}
 	d.Result.Success = true
 }
 
