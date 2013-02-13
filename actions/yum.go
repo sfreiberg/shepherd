@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"bytes"
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -47,19 +47,20 @@ func (y *Yum) Run() {
 		return
 	}
 
-	var cmd *exec.Cmd
+	var cmdString string
 	if y.Groupinstall {
-		cmd = exec.Command("/usr/bin/yum", "groupinstall", "-y", "-q")
+		cmdString = "/usr/bin/yum groupinstall -y -q"
 	} else {
-		cmd = exec.Command("/usr/bin/yum", "install", "-y", "-q")
+		cmdString = "/usr/bin/yum install -y -q"
 	}
 
 	for _, pkg := range y.Packages {
 		if pkg.Installed == false {
-			cmd.Args = append(cmd.Args, pkg.Name)
+			cmdString = cmdString + fmt.Sprintf(" '%v'", pkg.Name)
 		}
 	}
 
+	cmd := exec.Command("/bin/sh", "-c", cmdString)
 	out, err := cmd.CombinedOutput()
 	y.Result.Output = string(out)
 	if err != nil {
@@ -69,33 +70,30 @@ func (y *Yum) Run() {
 
 	y.Result.Changed = true
 	y.Result.Success = true
-
-	return
 }
 
 func (y *Yum) UpdatePkgStatus() error {
 	if y.Groupinstall {
-		cmd := exec.Command("/usr/bin/yum", "grouplist")
-		for _, pkg := range y.Packages {
-			cmd.Args = append(cmd.Args, pkg.Name)
-		}
-
-		out, err := cmd.CombinedOutput()
+		installedGroups, err := YumInstalledGroups()
 		if err != nil {
 			return err
 		}
-
 		for _, pkg := range y.Packages {
-			if bytes.IndexAny(out, pkg.Name) >= 0 {
-				pkg.Installed = true
+			for _, group := range installedGroups {
+				if pkg.Name == group {
+					pkg.Installed = true
+					break
+				}
 			}
 		}
 	} else {
-		cmd := exec.Command("/bin/rpm", "-q", "--queryformat", `%{NAME}\t%{VERSION}\n`)
+		cmdString := "/bin/rpm -q --queryformat '%{NAME}\t%{VERSION}\n'"
+
 		for _, pkg := range y.Packages {
-			cmd.Args = append(cmd.Args, pkg.Name)
+			cmdString = cmdString + " " + pkg.Name
 		}
 
+		cmd := exec.Command("/bin/sh", "-c", cmdString)
 		// Ignoring the error because it will error if _any_ package isn't installed.
 		out, _ := cmd.CombinedOutput()
 
@@ -134,4 +132,32 @@ func (y *Yum) PkgsToInstall() (bool, error) {
 	}
 	// if we made it here there is nothing to install
 	return false, nil
+}
+
+func YumInstalledGroups() ([]string, error) {
+	groups := []string{}
+	prefix := "   "
+
+	cmdString := "/usr/bin/yum grouplist"
+	cmd := exec.Command("/bin/sh", "-c", cmdString)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return groups, err
+	}
+
+	include := false
+	result := string(out)
+	for _, row := range strings.Split(result, "\n") {
+		if include {
+			if strings.HasPrefix(row, prefix) {
+				group := strings.TrimSpace(row)
+				groups = append(groups, group)
+			} else {
+				include = false
+			}
+		} else if strings.HasPrefix(row, "Installed Groups:") {
+			include = true
+		}
+	}
+	return groups, nil
 }
