@@ -6,20 +6,7 @@ Shepherd is configuration and server management wrapped in an easy to use, strai
 Install
 =======
 
-#### RPM based systems
-```
-# rpm -i http://netserious.com/downloads/shepherd-0.5.0-1.x86_64.rpm
-```
-
-#### Debian
-```
-# wget http://netserious.com/downloads/shepherd_0.5.0_amd64.deb
-# dpkg -i shepherd_0.5.0_amd64.deb
-```
-
-#### Mac OS X
-
-Download the latest pkg from http://netserious.com/downloads and double click on the installer.
+[Installation instructions](https://github.com/sfreiberg/shepherd/wiki/Installation)
 
 
 Configuration Examples
