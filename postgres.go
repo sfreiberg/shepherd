@@ -1,4 +1,4 @@
-package actions
+package main
 
 import (
 	_ "github.com/bmizerany/pq"

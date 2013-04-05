@@ -1,4 +1,4 @@
-package actions
+package main
 
 import (
 	"github.com/ziutek/mymysql/mysql"

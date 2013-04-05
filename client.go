@@ -1,7 +1,6 @@
 package main
 
 import (
-	"./facts"
 	"github.com/robertkrimen/otto"
 
 	"fmt"
@@ -16,7 +15,7 @@ var (
 func initJavascript() {
 	js = otto.New()
 
-	f := facts.FindFacts()
+	f := FindFacts()
 	if jsFacts, err := js.Object(`facts = {}`); err == nil {
 		jsFacts.Set("hostname", f.Hostname)
 		jsFacts.Set("domain", f.Domain)

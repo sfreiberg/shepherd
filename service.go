@@ -1,4 +1,4 @@
-package actions
+package main
 
 const (
 	SvcUnset   = iota // The status hasn't been checked yet

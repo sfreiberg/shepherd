@@ -1,13 +1,12 @@
 package main
 
 import (
-	"./actions"
 	"github.com/robertkrimen/otto"
 
 	"fmt"
 )
 
-func convertResultToObject(r *actions.Result) otto.Value {
+func convertResultToObject(r *Result) otto.Value {
 	result, err := js.Object(`result = {}`)
 	if err != nil {
 		return otto.UndefinedValue()
@@ -21,7 +20,7 @@ func convertResultToObject(r *actions.Result) otto.Value {
 	return result.Value()
 }
 
-func displayError(actionName string, r *actions.Result) {
+func displayError(actionName string, r *Result) {
 	if r.Success == false {
 		fmt.Printf("\x1b[31;1m*************** ERROR: %v ***************\x1b[0m\n", actionName)
 		fmt.Printf("\x1b[31;1m%v\x1b[0m\n", r.Error)
@@ -32,7 +31,7 @@ func displayError(actionName string, r *actions.Result) {
 func directory(call otto.FunctionCall) otto.Value {
 	path, _ := call.Argument(0).ToString()
 	options := call.Argument(1)
-	directory := actions.NewDirectory(path)
+	directory := NewDirectory(path)
 
 	directory.Options = convertValToMap(&options)
 
@@ -44,7 +43,7 @@ func directory(call otto.FunctionCall) otto.Value {
 func symlink(call otto.FunctionCall) otto.Value {
 	source, _ := call.Argument(0).ToString()
 	destination, _ := call.Argument(1).ToString()
-	symlink := actions.NewSymlink(source, destination)
+	symlink := NewSymlink(source, destination)
 	symlink.Run()
 	displayError("creating symlink", &symlink.Result)
 	return convertResultToObject(&symlink.Result)
@@ -53,7 +52,7 @@ func symlink(call otto.FunctionCall) otto.Value {
 func upstart(call otto.FunctionCall) otto.Value {
 	svc, _ := call.Argument(0).ToString()
 	action, _ := call.Argument(1).ToString()
-	upstart := actions.NewUpstart(svc, action)
+	upstart := NewUpstart(svc, action)
 
 	upstart.Run()
 	displayError("with upstart", &upstart.Result)
@@ -66,7 +65,7 @@ func template(call otto.FunctionCall) otto.Value {
 	context := call.Argument(2)
 	options := call.Argument(3)
 
-	t := actions.NewTemplate(source, destination)
+	t := NewTemplate(source, destination)
 	t.Context = convertValToMap(&context)
 	t.Options = convertValToMap(&options)
 
@@ -79,17 +78,17 @@ func apt(call otto.FunctionCall) otto.Value {
 	// Need at least one argument
 	if call.Argument(0).IsUndefined() {
 		e := "No arguments given to apt() method"
-		r := &actions.Result{Success: false, Changed: false, Error: e}
+		r := &Result{Success: false, Changed: false, Error: e}
 		return convertResultToObject(r)
 	}
 
-	p := actions.NewApt()
+	p := NewApt()
 	// Add a single package
 	pkgs := call.Argument(0)
 	if pkgs.IsString() {
 		pkgName, err := pkgs.ToString()
 		if err != nil {
-			r := &actions.Result{Success: false, Changed: false, Error: err.Error()}
+			r := &Result{Success: false, Changed: false, Error: err.Error()}
 			return convertResultToObject(r)
 		}
 		p.AddPackage(pkgName)
@@ -97,7 +96,7 @@ func apt(call otto.FunctionCall) otto.Value {
 	} else if pkgs.Class() == "Array" {
 		pkgNames, err := pkgs.Export()
 		if err != nil {
-			r := &actions.Result{Success: false, Changed: false, Error: err.Error()}
+			r := &Result{Success: false, Changed: false, Error: err.Error()}
 			return convertResultToObject(r)
 		}
 		for _, pkgName := range pkgNames.([]interface{}) {
@@ -114,17 +113,17 @@ func yum(call otto.FunctionCall) otto.Value {
 	// Need at least one argument
 	if call.Argument(0).IsUndefined() {
 		e := "No arguments given to yum() method"
-		r := &actions.Result{Success: false, Changed: false, Error: e}
+		r := &Result{Success: false, Changed: false, Error: e}
 		return convertResultToObject(r)
 	}
 
-	p := actions.NewYum()
+	p := NewYum()
 	// Add a single package
 	pkgs := call.Argument(0)
 	if pkgs.IsString() {
 		pkgName, err := pkgs.ToString()
 		if err != nil {
-			r := &actions.Result{Success: false, Changed: false, Error: err.Error()}
+			r := &Result{Success: false, Changed: false, Error: err.Error()}
 			return convertResultToObject(r)
 		}
 		p.AddPackage(pkgName)
@@ -132,7 +131,7 @@ func yum(call otto.FunctionCall) otto.Value {
 	} else if pkgs.Class() == "Array" {
 		pkgNames, err := pkgs.Export()
 		if err != nil {
-			r := &actions.Result{Success: false, Changed: false, Error: err.Error()}
+			r := &Result{Success: false, Changed: false, Error: err.Error()}
 			return convertResultToObject(r)
 		}
 		for _, pkgName := range pkgNames.([]interface{}) {
@@ -159,7 +158,7 @@ func yum(call otto.FunctionCall) otto.Value {
 
 func command(call otto.FunctionCall) otto.Value {
 	cmd, _ := call.Argument(0).ToString()
-	c := actions.NewCommand(cmd)
+	c := NewCommand(cmd)
 	c.Run()
 	displayError("executing command", &c.Result)
 	return convertResultToObject(&c.Result)
@@ -167,7 +166,7 @@ func command(call otto.FunctionCall) otto.Value {
 
 func user(call otto.FunctionCall) otto.Value {
 	username, _ := call.Argument(0).ToString()
-	u := actions.NewUser(username)
+	u := NewUser(username)
 
 	options := call.Argument(1)
 	if options.IsDefined() && options.IsObject() {
@@ -207,7 +206,7 @@ func user(call otto.FunctionCall) otto.Value {
 func pgUser(call otto.FunctionCall) otto.Value {
 	username, _ := call.Argument(0).ToString()
 	password, _ := call.Argument(1).ToString()
-	user := actions.NewPgUser(username, password)
+	user := NewPgUser(username, password)
 
 	options := call.Argument(2)
 	user.PgConnInfo = convertValToPgConnInfo(&options)
@@ -220,7 +219,7 @@ func pgUser(call otto.FunctionCall) otto.Value {
 func pgDatabase(call otto.FunctionCall) otto.Value {
 	name, _ := call.Argument(0).ToString()
 	owner, _ := call.Argument(1).ToString()
-	db := actions.NewPgDatabase(name, owner)
+	db := NewPgDatabase(name, owner)
 
 	options := call.Argument(2)
 	db.PgConnInfo = convertValToPgConnInfo(&options)
@@ -235,7 +234,7 @@ func mysqlUser(call otto.FunctionCall) otto.Value {
 	password, _ := call.Argument(1).ToString()
 	hostname, _ := call.Argument(2).ToString()
 	database, _ := call.Argument(3).ToString()
-	user := actions.NewMysqlUser(username, password, hostname, database)
+	user := NewMysqlUser(username, password, hostname, database)
 
 	options := call.Argument(4)
 	user.MysqlConnInfo = convertValToMysqlConnInfo(&options)
@@ -247,7 +246,7 @@ func mysqlUser(call otto.FunctionCall) otto.Value {
 
 func mysqlDatabase(call otto.FunctionCall) otto.Value {
 	name, _ := call.Argument(0).ToString()
-	db := actions.NewMysqlDatabase(name)
+	db := NewMysqlDatabase(name)
 
 	options := call.Argument(1)
 	db.MysqlConnInfo = convertValToMysqlConnInfo(&options)
@@ -259,7 +258,7 @@ func mysqlDatabase(call otto.FunctionCall) otto.Value {
 
 func sleep(call otto.FunctionCall) otto.Value {
 	millis, _ := call.Argument(0).ToInteger()
-	actions.Sleep(millis)
+	Sleep(millis)
 	return otto.NullValue()
 }
 
@@ -268,7 +267,7 @@ func file(call otto.FunctionCall) otto.Value {
 	destination, _ := call.Argument(1).ToString()
 	options := call.Argument(2)
 
-	f := actions.NewFile(source, destination)
+	f := NewFile(source, destination)
 	f.Options = convertValToMap(&options)
 
 	f.Run()
@@ -284,8 +283,8 @@ func convertValToMap(v *otto.Value) map[string]interface{} {
 	return make(map[string]interface{})
 }
 
-func convertValToPgConnInfo(v *otto.Value) actions.PgConnInfo {
-	connInfo := actions.PgConnInfo{}
+func convertValToPgConnInfo(v *otto.Value) PgConnInfo {
+	connInfo := PgConnInfo{}
 
 	if v.IsDefined() && v.IsObject() {
 		obj := v.Object()
@@ -318,8 +317,8 @@ func convertValToPgConnInfo(v *otto.Value) actions.PgConnInfo {
 	return connInfo
 }
 
-func convertValToMysqlConnInfo(v *otto.Value) *actions.MysqlConnInfo {
-	connInfo := &actions.MysqlConnInfo{}
+func convertValToMysqlConnInfo(v *otto.Value) *MysqlConnInfo {
+	connInfo := &MysqlConnInfo{}
 
 	if v.IsDefined() && v.IsObject() {
 		obj := v.Object()

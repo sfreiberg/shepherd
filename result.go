@@ -1,4 +1,4 @@
-package actions
+package main
 
 type Result struct {
 	Success bool

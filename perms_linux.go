@@ -1,4 +1,4 @@
-package actions
+package main
 
 const (
   statFormatFlag = `-c`

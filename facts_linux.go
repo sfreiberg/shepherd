@@ -1,4 +1,4 @@
-package facts
+package main
 
 func GetOs() string {
 	return "linux"
