@@ -10,7 +10,7 @@ func main() {
 		case "server":
 			// run server
 		case "client":
-			// run client
+			RunClient()
 		default:
 			RunStandalone()
 		}

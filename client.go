@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 var (
 	js *otto.Otto
+	// Number of minutes between runs
+	runInterval = 30
 )
 
 func initJavascript() {
@@ -41,9 +44,16 @@ func initJavascript() {
 	js.Set("file", file)
 }
 
-func RunStandalone() {
-	initJavascript()
+func RunClient() {
+	jsFiles := os.Args[2:]
 
+	for {
+		go executeJSFiles(jsFiles)
+		time.Sleep(time.Duration(runInterval) * time.Minute)
+	}
+}
+
+func RunStandalone() {
 	jsFiles := os.Args[1:]
 
 	if len(jsFiles) == 0 {
@@ -52,6 +62,12 @@ func RunStandalone() {
 	}
 
 	// Read and execute javascript
+	executeJSFiles(jsFiles)
+}
+
+func executeJSFiles(jsFiles []string) {
+	initJavascript()
+
 	for _, f := range jsFiles {
 		fmt.Printf("Executing %v...\n", f)
 		b, err := ioutil.ReadFile(f)
