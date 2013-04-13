@@ -53,7 +53,11 @@ func (d *Directory) CreateDirectory() {
 	}
 	d.Result.Changed = true
 
-	UpdatePermissions(d)
+	if err := UpdatePermissions(d); err != nil {
+		d.Result.Error = err.Error()
+		return
+	}
+	d.Result.Success = true
 }
 
 func (d *Directory) GetDestination() string {
