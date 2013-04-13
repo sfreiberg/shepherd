@@ -1,14 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 )
 
 type Apt struct {
-	Packages      map[string]*AptPackage
-	StatusUpdated bool // Has UpdatePkgStatus() been run?
+	Packages            map[string]*AptPackage
+	NoInstallRecommends bool // if true don't install recommended pkgs
+	StatusUpdated       bool // Has UpdatePkgStatus() been run?
 	Result
 }
 
@@ -39,7 +41,7 @@ func (a *Apt) AddPackages(names []string) {
 }
 
 func (a *Apt) Run() {
-	cont, err := a.PkgsToInstall()
+	cont, err := a.MissingPkgs()
 	if err != nil {
 		a.Result.Error = err.Error()
 		return
@@ -54,13 +56,19 @@ func (a *Apt) Run() {
 	// modules like mysql will hang.
 	os.Setenv("DEBIAN_FRONTEND", "noninteractive")
 
-	cmd := exec.Command("/usr/bin/apt-get", "install", "-y", "-q")
-	for _, pkg := range a.Packages {
-		if pkg.Installed == false {
-			cmd.Args = append(cmd.Args, pkg.Name)
-		}
+	missingPkgs, err := a.MissingPkgNames()
+	if err != nil {
+		a.Result.Error = err.Error()
+		return
 	}
 
+	aptCmd := fmt.Sprintf(
+		"/usr/bin/apt-get -y -q %v install %v",
+		a.NoInstallRecommendsOpt(),
+		strings.Join(missingPkgs, " "),
+	)
+
+	cmd := exec.Command("/bin/sh", "-c", aptCmd)
 	out, err := cmd.CombinedOutput()
 	a.Result.Output = string(out)
 	if err != nil {
@@ -100,7 +108,8 @@ func (a *Apt) UpdatePkgStatus() error {
 	return nil
 }
 
-func (a *Apt) PkgsToInstall() (bool, error) {
+// Returns trus if there are any packages that need to be installed.
+func (a *Apt) MissingPkgs() (bool, error) {
 	if a.StatusUpdated == false {
 		if err := a.UpdatePkgStatus(); err != nil {
 			return false, err
@@ -114,4 +123,31 @@ func (a *Apt) PkgsToInstall() (bool, error) {
 	}
 	// if we made it here there is nothing to install
 	return false, nil
+}
+
+// if this is false return an empty string, if true return the apt-get option
+func (a *Apt) NoInstallRecommendsOpt() string {
+	if a.NoInstallRecommends {
+		return "--no-install-recommends"
+	}
+	return ""
+}
+
+// Returns an array of package names that aren't currently installed.
+// Calls UpdatePkgStatus() if needed.
+func (a *Apt) MissingPkgNames() ([]string, error) {
+	pkgs := []string{}
+
+	if a.StatusUpdated == false {
+		if err := a.UpdatePkgStatus(); err != nil {
+			return pkgs, err
+		}
+	}
+
+	for _, pkg := range a.Packages {
+		if pkg.Installed == false {
+			pkgs = append(pkgs, pkg.Name)
+		}
+	}
+	return pkgs, nil
 }

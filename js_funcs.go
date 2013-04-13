@@ -104,6 +104,18 @@ func apt(call otto.FunctionCall) otto.Value {
 		}
 	}
 
+	// Check for optional arguments
+	options := call.Argument(1)
+	if options.IsDefined() && options.IsObject() {
+		noInstallRecommendsVal, err := options.Object().Get("noInstallRecommends")
+		if err == nil && noInstallRecommendsVal.IsBoolean() {
+			noInstallRecommends, _ := noInstallRecommendsVal.ToBoolean()
+			if noInstallRecommends {
+				p.NoInstallRecommends = true
+			}
+		}
+	}
+
 	p.Run()
 	displayError("installing packages", &p.Result)
 	return convertResultToObject(&p.Result)

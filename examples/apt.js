@@ -7,3 +7,6 @@ apt(["example-pkg", "example-pkg2"])
 // - or -
 pkgs = ["example-pkg", "example-pkg2"]
 apt(pkgs)
+
+// Don't install recommended packages
+apt("example-pkg", {noInstallRecommends: true})
