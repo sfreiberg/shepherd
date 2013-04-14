@@ -14,6 +14,7 @@ type User struct {
 	UserId   int64
 	GroupId  int64
 	Password string
+	Groups   []string
 	Result
 }
 
@@ -69,6 +70,11 @@ func (u *User) CreateUser() error {
 		cmd.Args = append(cmd.Args, "--password", u.Password)
 	}
 
+	if len(u.Groups) > 0 {
+		groups := u.SecondaryGroupsAsString()
+		cmd.Args = append(cmd.Args, "--groups", groups)
+	}
+
 	cmd.Args = append(cmd.Args, u.Username)
 
 	out, err := cmd.CombinedOutput()
@@ -108,6 +114,12 @@ func (u *User) UpdateUser(curUser *User) error {
 	if u.Password != "" && u.Password != curUser.Password {
 		anythingChanged = true
 		cmd.Args = append(cmd.Args, "--password", u.Password)
+	}
+
+	groups := u.SecondaryGroupsAsString()
+	if groups != curUser.SecondaryGroupsAsString() {
+		anythingChanged = true
+		cmd.Args = append(cmd.Args, "--groups", groups)
 	}
 
 	if anythingChanged != true {
@@ -167,4 +179,13 @@ func (u *User) GetCurrentUser() (*User, error) {
 	}
 
 	return curUser, nil
+}
+
+func (u *User) AddSecondaryGroup(group string) {
+	u.Groups = append(u.Groups, group)
+}
+
+// returns the array of secondary groups as a single comma delimited string
+func (u *User) SecondaryGroupsAsString() string {
+	return strings.Join(u.Groups, ",")
 }

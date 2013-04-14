@@ -208,6 +208,27 @@ func user(call otto.FunctionCall) otto.Value {
 		if p, err := obj.Get("password"); err == nil && p.IsString() {
 			u.Password, _ = p.ToString()
 		}
+
+		// get secondary groups
+		secondaryGroups, err := obj.Get("groups")
+		if err == nil && secondaryGroups.IsString() {
+			secondaryGroup, err := secondaryGroups.ToString()
+			if err != nil {
+				r := &Result{Success: false, Changed: false, Error: err.Error()}
+				return convertResultToObject(r)
+			}
+			u.AddSecondaryGroup(secondaryGroup)
+			// Add multiple secondary groups
+		} else if err == nil && secondaryGroups.Class() == "Array" {
+			secondaryGroupNames, err := secondaryGroups.Export()
+			if err != nil {
+				r := &Result{Success: false, Changed: false, Error: err.Error()}
+				return convertResultToObject(r)
+			}
+			for _, groupName := range secondaryGroupNames.([]interface{}) {
+				u.AddSecondaryGroup(groupName.(string))
+			}
+		}
 	}
 
 	u.Run()
