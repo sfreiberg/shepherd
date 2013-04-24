@@ -1,6 +1,6 @@
 package main
 
 const (
-  statFormatFlag = `-c`
-  statFormat = `%a %u %U %g %G`
+	statFormatFlag = `-c`
+	statFormat     = `%a %u %U %g %G`
 )

@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os"
+	"path"
 )
 
 type File struct {
@@ -13,7 +14,8 @@ type File struct {
 }
 
 func NewFile(source, destination string) *File {
-	f := &File{Source: source, Destination: destination}
+	fullSourcePath := path.Join(cwd, "files", source)
+	f := &File{Source: fullSourcePath, Destination: destination}
 	return f
 }
 

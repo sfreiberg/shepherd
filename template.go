@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 )
 
 type Template struct {
@@ -18,7 +19,8 @@ type Template struct {
 }
 
 func NewTemplate(source, destination string) *Template {
-	t := &Template{Source: source, Destination: destination}
+	fullSourcePath := path.Join(cwd, "templates", source)
+	t := &Template{Source: fullSourcePath, Destination: destination}
 	return t
 }
 

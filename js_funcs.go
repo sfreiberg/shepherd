@@ -308,6 +308,12 @@ func file(call otto.FunctionCall) otto.Value {
 	return convertResultToObject(&f.Result)
 }
 
+func include(call otto.FunctionCall) otto.Value {
+	module, _ := call.Argument(0).ToString()
+	Include(module)
+	return otto.NullValue()
+}
+
 func convertValToMap(v *otto.Value) map[string]interface{} {
 	if v.IsDefined() && v.IsObject() {
 		options, _ := v.Export()
