@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "github.com/bmizerany/pq"
+	_ "github.com/lib/pq"
 
 	"crypto/md5"
 	"database/sql"
