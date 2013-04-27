@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/robertkrimen/otto"
+	"github.com/sfreiberg/facts"
 
 	"flag"
 	"fmt"
@@ -29,13 +30,11 @@ var (
 func initJavascript() {
 	js = otto.New()
 
-	f := FindFacts()
-	if jsFacts, err := js.Object(`facts = {}`); err == nil {
-		jsFacts.Set("hostname", f.Hostname)
-		jsFacts.Set("domain", f.Domain)
-		jsFacts.Set("fqdn", f.Fqdn)
-		jsFacts.Set("cpus", f.Cpus)
-		jsFacts.Set("os", f.Os)
+	f := facts.FindFacts()
+	// TODO: log error
+	factsAsJson, err := f.ToJson()
+	if err == nil {
+		js.Object(`facts = ` + string(factsAsJson))
 	}
 
 	// Create javascript functions
