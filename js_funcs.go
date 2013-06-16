@@ -204,6 +204,12 @@ func user(call otto.FunctionCall) otto.Value {
 			u.GroupId, _ = g.ToInteger()
 		}
 
+		// Create default group
+		createDefaultGroupVal, err := obj.Get("createDefaultGroup")
+		if err == nil && createDefaultGroupVal.IsBoolean() {
+			u.CreateDefaultGroup, _ = createDefaultGroupVal.ToBoolean()
+		}
+
 		// get password
 		if p, err := obj.Get("password"); err == nil && p.IsString() {
 			u.Password, _ = p.ToString()

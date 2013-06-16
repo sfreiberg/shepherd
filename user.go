@@ -8,18 +8,19 @@ import (
 )
 
 type User struct {
-	Username string
-	HomeDir  string
-	Shell    string
-	UserId   int64
-	GroupId  int64
-	Password string
-	Groups   []string
+	Username           string
+	HomeDir            string
+	Shell              string
+	UserId             int64
+	GroupId            int64
+	Password           string
+	Groups             []string
+	CreateDefaultGroup bool
 	Result
 }
 
 func NewUser(username string) *User {
-	return &User{Username: username}
+	return &User{Username: username, CreateDefaultGroup: true}
 }
 
 func (u *User) Run() {
@@ -64,6 +65,12 @@ func (u *User) CreateUser() error {
 
 	if u.GroupId != 0 {
 		cmd.Args = append(cmd.Args, "--gid", strconv.FormatInt(u.GroupId, 10))
+	}
+
+	if u.CreateDefaultGroup {
+		cmd.Args = append(cmd.Args, "--user-group")
+	} else {
+		cmd.Args = append(cmd.Args, "--no-user-group")
 	}
 
 	if u.Password != "" {
