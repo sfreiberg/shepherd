@@ -9,7 +9,7 @@ import (
 type File struct {
 	Source      string
 	Destination string
-	Options     map[string]interface{}
+	Options     map[string]any
 	Result
 }
 

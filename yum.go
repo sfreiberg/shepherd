@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"os/exec"
+	"slices"
 	"strings"
 )
 
@@ -47,20 +47,9 @@ func (y *Yum) Run() {
 		return
 	}
 
-	var cmdString string
-	if y.Groupinstall {
-		cmdString = "/usr/bin/yum groupinstall -y -q"
-	} else {
-		cmdString = "/usr/bin/yum install -y -q"
-	}
-
-	for _, pkg := range y.Packages {
-		if pkg.Installed == false {
-			cmdString = cmdString + fmt.Sprintf(" '%v'", pkg.Name)
-		}
-	}
-
-	cmd := exec.Command("/bin/sh", "-c", cmdString)
+	// Pass package names as separate arguments rather than through a
+	// shell so names can't inject shell syntax.
+	cmd := exec.Command("/usr/bin/yum", y.yumArgs()...)
 	out, err := cmd.CombinedOutput()
 	y.Result.Output = string(out)
 	if err != nil {
@@ -72,6 +61,20 @@ func (y *Yum) Run() {
 	y.Result.Success = true
 }
 
+// yumArgs returns the yum arguments to install the missing packages.
+func (y *Yum) yumArgs() []string {
+	args := []string{"install", "-y", "-q"}
+	if y.Groupinstall {
+		args[0] = "groupinstall"
+	}
+	for _, pkg := range y.Packages {
+		if !pkg.Installed {
+			args = append(args, pkg.Name)
+		}
+	}
+	return args
+}
+
 func (y *Yum) UpdatePkgStatus() error {
 	if y.Groupinstall {
 		installedGroups, err := YumInstalledGroups()
@@ -79,25 +82,20 @@ func (y *Yum) UpdatePkgStatus() error {
 			return err
 		}
 		for _, pkg := range y.Packages {
-			for _, group := range installedGroups {
-				if pkg.Name == group {
-					pkg.Installed = true
-					break
-				}
+			if slices.Contains(installedGroups, pkg.Name) {
+				pkg.Installed = true
 			}
 		}
 	} else {
-		cmdString := "/bin/rpm -q --queryformat '%{NAME}\t%{VERSION}\n'"
-
+		cmd := exec.Command("/bin/rpm", "-q", "--queryformat", `%{NAME}\t%{VERSION}\n`)
 		for _, pkg := range y.Packages {
-			cmdString = cmdString + " " + pkg.Name
+			cmd.Args = append(cmd.Args, pkg.Name)
 		}
 
-		cmd := exec.Command("/bin/sh", "-c", cmdString)
 		// Ignoring the error because it will error if _any_ package isn't installed.
 		out, _ := cmd.CombinedOutput()
 
-		for _, row := range strings.Split(string(out), "\n") {
+		for row := range strings.SplitSeq(string(out), "\n") {
 			// Make sure we only process packages that are installed
 			if strings.HasSuffix(row, "not installed") {
 				continue // We're ignoring packages that aren't installed
@@ -147,7 +145,7 @@ func YumInstalledGroups() ([]string, error) {
 
 	include := false
 	result := string(out)
-	for _, row := range strings.Split(result, "\n") {
+	for row := range strings.SplitSeq(result, "\n") {
 		if include {
 			if strings.HasPrefix(row, prefix) {
 				group := strings.TrimSpace(row)

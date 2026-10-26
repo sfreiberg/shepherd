@@ -6,7 +6,7 @@ import (
 
 type Directory struct {
 	Destination string
-	Options     map[string]interface{}
+	Options     map[string]any
 	Result
 }
 
@@ -28,8 +28,7 @@ func (d *Directory) Run() {
 			d.Result.Error = err.Error()
 			return
 		} else {
-			d.CreateDirectory()
-			d.Result.Success = true
+			d.CreateDirectory() // sets Success or Error itself
 			return
 		}
 	}

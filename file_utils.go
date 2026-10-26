@@ -26,7 +26,7 @@ func UpdatePermissions(fp FilePermissions) error {
 		return err
 	}
 
-	if fp.GetPermissions() != "" && perms.Perms != fp.GetPermissions() {
+	if fp.GetPermissions() != "" && !samePerms(perms.Perms, fp.GetPermissions()) {
 		cmd := exec.Command("/bin/chmod", fp.GetPermissions(), fp.GetDestination())
 		if out, err := cmd.CombinedOutput(); err != nil {
 			fp.GetResult().Output = string(out)
@@ -55,6 +55,13 @@ func UpdatePermissions(fp FilePermissions) error {
 	}
 
 	return nil
+}
+
+// samePerms compares octal permission strings, ignoring leading zeros so
+// that the configured "0640" matches the "640" reported by stat.
+func samePerms(a, b string) bool {
+	a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
+	return a == b
 }
 
 type Perms struct {

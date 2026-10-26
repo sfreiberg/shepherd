@@ -126,7 +126,7 @@ func (u *Upstart) Stop() error {
 
 	switch u.Status {
 	case SvcStarted:
-		cmd := exec.Command("/sbin/restart", u.Name)
+		cmd := exec.Command("/sbin/stop", u.Name)
 		_, err := cmd.Output()
 		if err != nil {
 			return err
