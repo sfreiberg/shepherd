@@ -305,3 +305,96 @@ func TestJavascriptBindings(t *testing.T) {
 		t.Fatalf("facts.hostname has type %q", s)
 	}
 }
+
+func TestFilePermsIdempotent(t *testing.T) {
+	// "0640" must match stat's "640", otherwise every run chmods the file
+	// and reports a change.
+	dir := t.TempDir()
+	withCwd(t, dir)
+	writeFile(t, filepath.Join(dir, "files", "secret.conf"), "x")
+	dest := filepath.Join(dir, "secret.conf")
+
+	for i, wantChanged := range []bool{true, false} {
+		f := NewFile("secret.conf", dest)
+		f.Options = map[string]any{"perms": "0640"}
+		f.Run()
+		if !f.Success || f.Changed != wantChanged {
+			t.Fatalf("run %d: %+v", i, f.Result)
+		}
+	}
+	fi, err := os.Stat(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode().Perm() != 0o640 {
+		t.Fatalf("mode = %v, want 0640", fi.Mode().Perm())
+	}
+}
+
+func TestSamePerms(t *testing.T) {
+	for _, tt := range []struct {
+		a, b string
+		want bool
+	}{
+		{"640", "0640", true},
+		{"755", "755", true},
+		{"0", "000", true},
+		{"644", "0640", false},
+		{"640", "u+r", false},
+	} {
+		if got := samePerms(tt.a, tt.b); got != tt.want {
+			t.Errorf("samePerms(%q, %q) = %v, want %v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}
+
+func TestPackageManagerArgs(t *testing.T) {
+	a := NewApt()
+	got := strings.Join(a.aptArgs([]string{"nginx", "foo; rm -rf /"}), "|")
+	if want := "-y|-q|install|nginx|foo; rm -rf /"; got != want {
+		t.Errorf("aptArgs = %q, want %q", got, want)
+	}
+	a.NoInstallRecommends = true
+	got = strings.Join(a.aptArgs([]string{"nginx"}), "|")
+	if want := "-y|-q|--no-install-recommends|install|nginx"; got != want {
+		t.Errorf("aptArgs = %q, want %q", got, want)
+	}
+
+	y := NewYum()
+	y.AddPackage("httpd")
+	y.AddPackage("mod_ssl")
+	y.Packages["mod_ssl"].Installed = true
+	if got := strings.Join(y.yumArgs(), "|"); got != "install|-y|-q|httpd" {
+		t.Errorf("yumArgs = %q", got)
+	}
+	y = NewYum()
+	y.Groupinstall = true
+	y.AddPackage("Development Tools")
+	if got := y.yumArgs(); len(got) != 4 || got[0] != "groupinstall" || got[3] != "Development Tools" {
+		t.Errorf("yumArgs = %q", got)
+	}
+}
+
+func TestMysqlIdent(t *testing.T) {
+	for in, want := range map[string]string{
+		"app":            "`app`",
+		"my-db":          "`my-db`",
+		"x`; DROP x; --": "`x``; DROP x; --`",
+	} {
+		if got := mysqlIdent(in); got != want {
+			t.Errorf("mysqlIdent(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestConvertValToMapNonObject(t *testing.T) {
+	vm := otto.New()
+	v, err := vm.Run(`["a", "b"]`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// An array is an object in JS but not a map; this used to panic.
+	if m := convertValToMap(&v); m == nil || len(m) != 0 {
+		t.Fatalf("got %v, want empty map", m)
+	}
+}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -62,13 +61,9 @@ func (a *Apt) Run() {
 		return
 	}
 
-	aptCmd := fmt.Sprintf(
-		"/usr/bin/apt-get -y -q %v install %v",
-		a.NoInstallRecommendsOpt(),
-		strings.Join(missingPkgs, " "),
-	)
-
-	cmd := exec.Command("/bin/sh", "-c", aptCmd)
+	// Pass package names as separate arguments rather than through a
+	// shell so names can't inject shell syntax.
+	cmd := exec.Command("/usr/bin/apt-get", a.aptArgs(missingPkgs)...)
 	out, err := cmd.CombinedOutput()
 	a.Result.Output = string(out)
 	if err != nil {
@@ -123,6 +118,16 @@ func (a *Apt) MissingPkgs() (bool, error) {
 	}
 	// if we made it here there is nothing to install
 	return false, nil
+}
+
+// aptArgs returns the apt-get arguments to install pkgs.
+func (a *Apt) aptArgs(pkgs []string) []string {
+	args := []string{"-y", "-q"}
+	if opt := a.NoInstallRecommendsOpt(); opt != "" {
+		args = append(args, opt)
+	}
+	args = append(args, "install")
+	return append(args, pkgs...)
 }
 
 // if this is false return an empty string, if true return the apt-get option

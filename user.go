@@ -168,6 +168,9 @@ func (u *User) GetCurrentUser() (*User, error) {
 	}
 
 	shadowFields := strings.Split(string(out), ":")
+	if len(shadowFields) < 2 {
+		return nil, errors.New("Unexpected number of fields in shadow entry")
+	}
 
 	curUser := &User{
 		Username: passwdFields[0],

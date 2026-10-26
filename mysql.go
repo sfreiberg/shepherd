@@ -7,7 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 )
+
+// mysqlIdent quotes name as a MySQL identifier.
+func mysqlIdent(name string) string {
+	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
+}
 
 type MysqlConnInfo struct {
 	Username string
@@ -51,6 +57,7 @@ func (mu *MysqlUser) Run() {
 		mu.Result.Error = err.Error()
 		return
 	}
+	defer db.Close()
 
 	userExists, err := mu.UserExists(db)
 	if err != nil {
@@ -59,7 +66,7 @@ func (mu *MysqlUser) Run() {
 	}
 
 	if userExists != true {
-		_, _, err := db.Query("CREATE USER '%v'@'%v' IDENTIFIED BY '%v'", mu.Username, mu.Hostname, mu.Password)
+		_, _, err := db.Query("CREATE USER '%v'@'%v' IDENTIFIED BY '%v'", db.Escape(mu.Username), db.Escape(mu.Hostname), db.Escape(mu.Password))
 		if err != nil {
 			mu.Result.Error = err.Error()
 			return
@@ -73,7 +80,7 @@ func (mu *MysqlUser) Run() {
 		return
 	}
 	if grantExists != true {
-		_, _, err = db.Query("GRANT ALL ON %v.* TO '%v'@'%v'", mu.Database, mu.Username, mu.Hostname)
+		_, _, err = db.Query("GRANT ALL ON %v.* TO '%v'@'%v'", mysqlIdent(mu.Database), db.Escape(mu.Username), db.Escape(mu.Hostname))
 		if err != nil {
 			mu.Result.Error = err.Error()
 			return
@@ -88,9 +95,9 @@ func (mu *MysqlUser) Run() {
 func (mu *MysqlUser) UserExists(db mysql.Conn) (bool, error) {
 	rows, _, err := db.Query(
 		"SELECT COUNT(*) FROM mysql.user WHERE User = '%v' and Host = '%v' and Password = password('%v')",
-		mu.Username,
-		mu.Hostname,
-		mu.Password,
+		db.Escape(mu.Username),
+		db.Escape(mu.Hostname),
+		db.Escape(mu.Password),
 	)
 	if err != nil {
 		return false, err
@@ -110,8 +117,8 @@ func (mu *MysqlUser) UserExists(db mysql.Conn) (bool, error) {
 func (mu *MysqlUser) GrantExists(db mysql.Conn) (bool, error) {
 	rows, _, err := db.Query(
 		"SHOW GRANTS FOR '%v'@'%v'",
-		mu.Username,
-		mu.Hostname,
+		db.Escape(mu.Username),
+		db.Escape(mu.Hostname),
 	)
 	if err != nil {
 		return false, err
@@ -124,7 +131,8 @@ func (mu *MysqlUser) GrantExists(db mysql.Conn) (bool, error) {
 	for _, row := range rows {
 		grant := row.Str(0)
 		// This regex hasn't been extensively tested but works in my local tests
-		regex := fmt.Sprintf("GRANT ALL (.+) ON .%v.(.+) TO .%v.@.%v.", mu.Database, mu.Username, mu.Hostname)
+		regex := fmt.Sprintf("GRANT ALL (.+) ON .%v.(.+) TO .%v.@.%v.",
+			regexp.QuoteMeta(mu.Database), regexp.QuoteMeta(mu.Username), regexp.QuoteMeta(mu.Hostname))
 		matched, err := regexp.MatchString(regex, grant)
 		if err != nil {
 			return false, err
@@ -162,6 +170,7 @@ func (mydb *MysqlDatabase) Run() {
 		mydb.Result.Error = err.Error()
 		return
 	}
+	defer db.Close()
 
 	exists, err := mydb.DatabaseExists(db)
 	if err != nil {
@@ -187,7 +196,7 @@ func (mydb *MysqlDatabase) Run() {
 func (mydb *MysqlDatabase) CreateDatabase(db mysql.Conn) error {
 	// IF NOT EXISTS isn't strictly necessary since we are checking
 	// to make sure it doesn't exist first but it doesn't hurt.
-	_, _, err := db.Query("CREATE DATABASE IF NOT EXISTS %v", mydb.Name)
+	_, _, err := db.Query("CREATE DATABASE IF NOT EXISTS %v", mysqlIdent(mydb.Name))
 	if err != nil {
 		return err
 	}
@@ -198,7 +207,7 @@ func (mydb *MysqlDatabase) CreateDatabase(db mysql.Conn) error {
 func (mydb *MysqlDatabase) DatabaseExists(db mysql.Conn) (bool, error) {
 	rows, _, err := db.Query(
 		"SELECT count(*) AS dbs FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '%v'",
-		mydb.Name,
+		db.Escape(mydb.Name),
 	)
 	if err != nil {
 		return false, err

@@ -323,7 +323,9 @@ func include(call otto.FunctionCall) otto.Value {
 func convertValToMap(v *otto.Value) map[string]any {
 	if v.IsDefined() && v.IsObject() {
 		options, _ := v.Export()
-		return options.(map[string]any)
+		if m, ok := options.(map[string]any); ok {
+			return m
+		}
 	}
 	return make(map[string]any)
 }

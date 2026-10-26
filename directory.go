@@ -28,8 +28,7 @@ func (d *Directory) Run() {
 			d.Result.Error = err.Error()
 			return
 		} else {
-			d.CreateDirectory()
-			d.Result.Success = true
+			d.CreateDirectory() // sets Success or Error itself
 			return
 		}
 	}

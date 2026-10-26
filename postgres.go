@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 
 	"crypto/md5"
 	"database/sql"
@@ -39,9 +39,9 @@ func (pg *PgUser) Run() {
 	if userExists != true || correctPass != true {
 		var q string
 		if userExists != true {
-			q = fmt.Sprintf("CREATE USER %v ENCRYPTED PASSWORD '%v'", pg.Username, pg.ComputePassword())
+			q = fmt.Sprintf("CREATE USER %v ENCRYPTED PASSWORD %v", pq.QuoteIdentifier(pg.Username), pq.QuoteLiteral(pg.ComputePassword()))
 		} else if correctPass != true {
-			q = fmt.Sprintf("ALTER USER %v ENCRYPTED PASSWORD '%v'", pg.Username, pg.ComputePassword())
+			q = fmt.Sprintf("ALTER USER %v ENCRYPTED PASSWORD %v", pq.QuoteIdentifier(pg.Username), pq.QuoteLiteral(pg.ComputePassword()))
 		}
 
 		_, err = db.Exec(q)
@@ -62,6 +62,7 @@ func (pg *PgUser) UserCheck(db *sql.DB) (userExists, correctPass bool, err error
 	if err != nil {
 		return false, false, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		userExists = true // We got at least one row so we know the user exists
 		var p string
@@ -116,7 +117,7 @@ func (pgd *PgDatabase) Run() {
 	}
 
 	if dbExists != true {
-		q := fmt.Sprintf("CREATE DATABASE %v WITH OWNER = %v", pgd.Name, pgd.Owner)
+		q := fmt.Sprintf("CREATE DATABASE %v WITH OWNER = %v", pq.QuoteIdentifier(pgd.Name), pq.QuoteIdentifier(pgd.Owner))
 		_, err = db.Exec(q)
 		if err != nil {
 			pgd.Result.Error = err.Error()
@@ -124,7 +125,7 @@ func (pgd *PgDatabase) Run() {
 		}
 		pgd.Result.Changed = true
 	} else if correctOwner != true {
-		q := fmt.Sprintf("ALTER DATABASE %v OWNER TO %v", pgd.Name, pgd.Owner)
+		q := fmt.Sprintf("ALTER DATABASE %v OWNER TO %v", pq.QuoteIdentifier(pgd.Name), pq.QuoteIdentifier(pgd.Owner))
 		_, err = db.Exec(q)
 		if err != nil {
 			pgd.Result.Error = err.Error()
@@ -145,14 +146,15 @@ func (pgd *PgDatabase) DatabaseCheck(db *sql.DB) (dbExists, correctOwner bool, e
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 	for rows.Next() {
-		dbExists = true // We got at least one row so we know the db exists
-		var owner string
+		dbExists = true          // We got at least one row so we know the db exists
+		var owner sql.NullString // NULL if the owning role was dropped
 		err = rows.Scan(&owner)
 		if err != nil {
 			return
 		}
-		if owner == pgd.Owner {
+		if owner.Valid && owner.String == pgd.Owner {
 			correctOwner = true
 			return
 		}

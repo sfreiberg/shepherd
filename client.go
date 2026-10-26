@@ -64,8 +64,10 @@ func RunClient() {
 	}
 	cwd = shepherdPath
 
+	// Run synchronously: the JavaScript VM and cwd are globals that are not
+	// safe for concurrent use, so overlapping runs must not happen.
 	for {
-		go executeMainJS()
+		executeMainJS()
 		time.Sleep(time.Duration(runInterval) * time.Minute)
 	}
 }
@@ -103,7 +105,9 @@ func executeJSFile(file string) {
 	fmt.Printf("Executing %v...\n", file)
 	b, err := os.ReadFile(file)
 	if err != nil {
-		panic(err.Error())
+		fmt.Println("Error reading: ", file)
+		fmt.Println(err)
+		return
 	}
 	_, err = js.Run(string(b))
 	if err != nil {
