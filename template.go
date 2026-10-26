@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/flosch/pongo"
+	"github.com/flosch/pongo2/v6"
 
 	"crypto/md5"
 	"fmt"
@@ -10,11 +10,17 @@ import (
 	"path"
 )
 
+func init() {
+	// Templates render configuration files, not HTML. pongo (v1) never
+	// escaped output; keep that behaviour with pongo2.
+	pongo2.SetAutoescape(false)
+}
+
 type Template struct {
 	Source      string
 	Destination string
-	Context     map[string]interface{}
-	Options     map[string]interface{}
+	Context     map[string]any
+	Options     map[string]any
 	Result
 }
 
@@ -86,16 +92,11 @@ func (t *Template) HashTemplate(str string) string {
 }
 
 func (t *Template) CreateTemplate() (string, error) {
-	tpl, err := pongo.FromFile(t.Source, nil)
+	tpl, err := pongo2.FromFile(t.Source)
 	if err != nil {
 		return "", err
 	}
-	ctx := pongo.Context(t.Context)
-	out, err := tpl.Execute(&ctx)
-	if err != nil {
-		return "", err
-	}
-	return *out, nil
+	return tpl.Execute(pongo2.Context(t.Context))
 }
 
 func (t *Template) FileExists() bool {

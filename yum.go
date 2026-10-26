@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"slices"
 	"strings"
 )
 
@@ -79,11 +80,8 @@ func (y *Yum) UpdatePkgStatus() error {
 			return err
 		}
 		for _, pkg := range y.Packages {
-			for _, group := range installedGroups {
-				if pkg.Name == group {
-					pkg.Installed = true
-					break
-				}
+			if slices.Contains(installedGroups, pkg.Name) {
+				pkg.Installed = true
 			}
 		}
 	} else {
@@ -97,7 +95,7 @@ func (y *Yum) UpdatePkgStatus() error {
 		// Ignoring the error because it will error if _any_ package isn't installed.
 		out, _ := cmd.CombinedOutput()
 
-		for _, row := range strings.Split(string(out), "\n") {
+		for row := range strings.SplitSeq(string(out), "\n") {
 			// Make sure we only process packages that are installed
 			if strings.HasSuffix(row, "not installed") {
 				continue // We're ignoring packages that aren't installed
@@ -147,7 +145,7 @@ func YumInstalledGroups() ([]string, error) {
 
 	include := false
 	result := string(out)
-	for _, row := range strings.Split(result, "\n") {
+	for row := range strings.SplitSeq(result, "\n") {
 		if include {
 			if strings.HasPrefix(row, prefix) {
 				group := strings.TrimSpace(row)

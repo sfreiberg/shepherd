@@ -6,7 +6,7 @@ import (
 
 type Directory struct {
 	Destination string
-	Options     map[string]interface{}
+	Options     map[string]any
 	Result
 }
 

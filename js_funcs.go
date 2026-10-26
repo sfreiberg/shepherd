@@ -99,7 +99,7 @@ func apt(call otto.FunctionCall) otto.Value {
 			r := &Result{Success: false, Changed: false, Error: err.Error()}
 			return convertResultToObject(r)
 		}
-		for _, pkgName := range pkgNames.([]interface{}) {
+		for _, pkgName := range pkgNames.([]any) {
 			p.AddPackage(pkgName.(string))
 		}
 	}
@@ -146,7 +146,7 @@ func yum(call otto.FunctionCall) otto.Value {
 			r := &Result{Success: false, Changed: false, Error: err.Error()}
 			return convertResultToObject(r)
 		}
-		for _, pkgName := range pkgNames.([]interface{}) {
+		for _, pkgName := range pkgNames.([]any) {
 			p.AddPackage(pkgName.(string))
 		}
 	}
@@ -231,7 +231,7 @@ func user(call otto.FunctionCall) otto.Value {
 				r := &Result{Success: false, Changed: false, Error: err.Error()}
 				return convertResultToObject(r)
 			}
-			for _, groupName := range secondaryGroupNames.([]interface{}) {
+			for _, groupName := range secondaryGroupNames.([]any) {
 				u.AddSecondaryGroup(groupName.(string))
 			}
 		}
@@ -320,12 +320,12 @@ func include(call otto.FunctionCall) otto.Value {
 	return otto.NullValue()
 }
 
-func convertValToMap(v *otto.Value) map[string]interface{} {
+func convertValToMap(v *otto.Value) map[string]any {
 	if v.IsDefined() && v.IsObject() {
 		options, _ := v.Export()
-		return options.(map[string]interface{})
+		return options.(map[string]any)
 	}
-	return make(map[string]interface{})
+	return make(map[string]any)
 }
 
 func convertValToPgConnInfo(v *otto.Value) PgConnInfo {

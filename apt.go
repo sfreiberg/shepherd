@@ -89,7 +89,7 @@ func (a *Apt) UpdatePkgStatus() error {
 	// Ignoring the error because it will error if _any_ package isn't installed.
 	out, _ := cmd.CombinedOutput()
 
-	for _, row := range strings.Split(string(out), "\n") {
+	for row := range strings.SplitSeq(string(out), "\n") {
 		columns := strings.Split(row, "\t")
 		// if there are 3 columns process the row, otherwise we just skip it for now
 		if len(columns) == 3 {

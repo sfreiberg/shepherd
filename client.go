@@ -6,7 +6,6 @@ import (
 
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -102,7 +101,7 @@ func executeJSFiles(jsFiles []string) {
 
 func executeJSFile(file string) {
 	fmt.Printf("Executing %v...\n", file)
-	b, err := ioutil.ReadFile(file)
+	b, err := os.ReadFile(file)
 	if err != nil {
 		panic(err.Error())
 	}
